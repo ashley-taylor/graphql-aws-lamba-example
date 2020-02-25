@@ -1,0 +1,477 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "AWS CloudFormation activity",
+	"Parameters": {
+		"S3Bucket": {
+			"Type": "String"
+		},
+		"LambdaCode": {
+			"Type": "String"
+		},
+		"Stack": {
+			"Type": "String"
+		}
+	},
+	"Resources": {
+		"ActivityLambdaExecutionRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "lambda.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Policies": [{
+					"PolicyName": "root",
+					"PolicyDocument": {
+						"Version": "2012-10-17",
+						"Statement": [
+							{
+								"Action": [
+									"dynamodb:*"
+								],
+								"Effect": "Allow",
+								"Resource": [
+									 { "Fn::GetAtt": ["SubscriptionTable", "Arn"] },
+									 {"Fn::Join":["", [{ "Fn::GetAtt": ["SubscriptionTable", "Arn"] }, "*"]]},
+									 { "Fn::GetAtt": ["EntityTable", "Arn"] },
+									 {"Fn::Join":["", [{ "Fn::GetAtt": ["EntityTable", "Arn"] }, "*"]]}
+									 
+								]
+							},
+							{
+								"Effect": "Allow",
+								"Action": [
+									"execute-api:*",
+									"logs:createLogGroup",
+									"logs:createLogStream",
+									"logs:putLogEvents"
+								],
+								"Resource": "*"
+							}
+							
+						]
+					}
+				}],
+				"Path": "/"
+			}
+		},
+		"ApiGatewayWebsocket": {
+			"Type" : "AWS::ApiGatewayV2::Api",
+			"Properties" : {
+				"Name": {"Fn::Sub": "${Stack}-graph-example" },
+        		"ProtocolType": "WEBSOCKET",
+        		"RouteSelectionExpression": "subscriptions"
+				}
+		},
+		
+		"ConnectRoute": {
+			"Type": "AWS::ApiGatewayV2::Route",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"RouteKey": "$connect",
+				"AuthorizationType": "NONE",
+				"OperationName": "ConnectRoute",
+				"Target": {"Fn::Sub": "integrations/${ConnectInteg}"}
+			}
+		},
+		"ConnectInteg": {
+			"Type": "AWS::ApiGatewayV2::Integration",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"Description": "Connect Integration",
+				"IntegrationType": "AWS_PROXY",
+				"IntegrationUri": {
+					"Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscriptionControlFunction.Arn}/invocations"
+				}
+			}
+		},
+		"DisconnectRoute": {
+			"Type": "AWS::ApiGatewayV2::Route",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"RouteKey": "$disconnect",
+				"AuthorizationType": "NONE",
+				"OperationName": "DisconnectRoute",
+				"Target": {"Fn::Sub": "integrations/${DisconnectInteg}"}
+			}
+		},
+		"DisconnectInteg": {
+			"Type": "AWS::ApiGatewayV2::Integration",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"Description": "Disconnect Integration",
+				"IntegrationType": "AWS_PROXY",
+				"IntegrationUri": {
+					"Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscriptionControlFunction.Arn}/invocations"
+				}
+			}
+		},
+		"SendRoute": {
+			"Type": "AWS::ApiGatewayV2::Route",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"RouteKey": "$default",
+				"AuthorizationType": "NONE",
+				"OperationName": "SendRoute",
+				"Target": {"Fn::Sub": "integrations/${SendInteg}"}
+			}
+		},
+		"SendInteg": {
+			"Type": "AWS::ApiGatewayV2::Integration",
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"},
+				"Description": "Send Integration",
+				"IntegrationType": "AWS_PROXY",
+				"IntegrationUri": {
+					"Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubscriptionControlFunction.Arn}/invocations"
+				}
+			}
+		},
+		"Deployment": {
+			"Type": "AWS::ApiGatewayV2::Deployment",
+			"DependsOn": [
+				"ConnectRoute",
+				"SendRoute",
+				"DisconnectRoute"
+			],
+			"Properties": {
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"}
+			}
+		},
+		"Stage": {
+			"Type": "AWS::ApiGatewayV2::Stage",
+			"Properties": {
+				"StageName": {"Ref": "Stack"},
+				"Description": "Graph Example Stage",
+				"DeploymentId": {"Ref": "Deployment"},
+				"ApiId": {"Fn::Sub": "${ApiGatewayWebsocket}"}
+			}
+		},
+		"SubscriptionControlFunction": {
+			"Type": "AWS::Lambda::Function",
+			"DependsOn": [
+				"ActivityLambdaExecutionRole"
+			],
+			"Properties": {
+				"Code": {
+					"S3Bucket": {"Ref": "S3Bucket"},
+					"S3Key": {"Ref": "LambdaCode"}
+				},
+				"Role": {
+					"Fn::GetAtt": ["ActivityLambdaExecutionRole", "Arn"]
+				},
+				"Timeout": 30,
+				"MemorySize": 512,
+				"Handler": "io.github.ashleytaylor.graphql.lambda.example.LambdaSubscriptionEndpoint::handleRequest",
+				"Runtime": "java11",
+				"Environment": {
+					"Variables": {
+						"GRAPH_SUBSCRIPTIONS": { "Ref": "SubscriptionTable"	},
+						"ENTITY_DATABASES" : { "Ref": "EntityTable"},
+						"API": {"Fn::Sub" : "https://${ApiGatewayWebsocket}.execute-api.${AWS::Region}.amazonaws.com/${Stack}"}
+					}
+				}
+			}
+		},
+		"SubscriptionControlPermission": {
+    	"Type": "AWS::Lambda::Permission",
+			"DependsOn": [ "ApiGatewayWebsocket", "SubscriptionControlFunction"],
+			"Properties": {
+      	"Action": "lambda:InvokeFunction",
+      	"FunctionName": {"Ref": "SubscriptionControlFunction"},
+				"Principal": "apigateway.amazonaws.com"
+			}
+		},
+		"Graph": {
+			"Type": "AWS::ApiGateway::RestApi",
+			"Properties": {
+				"Name": {"Fn::Sub": "${Stack}-example-graphql-api" },
+				"Description": "main graphql endpoint"
+			}
+		},
+		"apiGatewayRootMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"AuthorizationType": "NONE",
+				"HttpMethod": "POST",
+				"Integration": {
+					"IntegrationHttpMethod": "POST",
+					"Type": "AWS_PROXY",
+					"Uri": {"Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GraphFunction.Arn}/invocations"}
+				},
+				"ResourceId": {"Fn::GetAtt": ["Graph", "RootResourceId"]},
+				"RestApiId": {"Ref": "Graph"}
+			}
+		},
+		"apiGatewayRootMethodOption": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"ResourceId": {"Fn::GetAtt": ["Graph", "RootResourceId"]},
+				"RestApiId": {"Ref": "Graph"},
+				"AuthorizationType": "NONE",
+				"HttpMethod": "OPTIONS",
+				"Integration": {
+					"Type": "MOCK",
+					"IntegrationResponses": [
+						{
+							"ResponseParameters": {
+								"method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,authrequired,X-Api-Key,X-Amz-Security-Token'",
+								"method.response.header.Access-Control-Allow-Methods": "'GET,POST,PUT,DELETE,OPTIONS'",
+								"method.response.header.Access-Control-Allow-Origin": "'*'"
+							},
+							"ResponseTemplates": {
+								"application/json": ""
+							},
+							"StatusCode": "200"
+						}
+					],
+					"PassthroughBehavior": "NEVER",
+					"RequestTemplates": {
+						"application/json": "{\"statusCode\": 200}"
+					}
+				},
+				"MethodResponses": [
+					{
+						"ResponseModels": {
+							"application/json": "Empty"
+						},
+						"ResponseParameters": {
+							"method.response.header.Access-Control-Allow-Headers": true,
+							"method.response.header.Access-Control-Allow-Methods": true,
+							"method.response.header.Access-Control-Allow-Origin": true
+						},
+						"StatusCode": "200"
+					}
+				]
+			}
+		},
+
+
+		
+		"apiGatewayDeployment": {
+			"Type": "AWS::ApiGateway::Deployment",
+			"DependsOn": [
+				"apiGatewayRootMethod",
+				"apiGatewayRootMethodOption"
+			],
+			"Properties": {
+				"RestApiId": {"Ref": "Graph"},
+				"StageName" : {"Fn::Sub": "${Stack}-example-graphql-api" }
+			}
+		},
+		"GraphFunction": {
+			"Type": "AWS::Lambda::Function",
+			"DependsOn": [
+				"ActivityLambdaExecutionRole"
+			],
+			"Properties": {
+				"Code": {
+					"S3Bucket": {"Ref": "S3Bucket"},
+					"S3Key": {"Ref": "LambdaCode"}
+				},
+				"Role": {
+					"Fn::GetAtt": ["ActivityLambdaExecutionRole", "Arn"]
+				},
+				"Timeout": 60,
+				"MemorySize": 3008,
+				"Handler": "io.github.ashleytaylor.graphql.lambda.example.LambdaEndpoint::handleRequest",
+				"Runtime": "java11",
+				"Environment": {
+					"Variables": {
+						"GRAPH_SUBSCRIPTIONS": { "Ref": "SubscriptionTable"	},
+						"ENTITY_DATABASES" : { "Ref": "EntityTable"}
+					}
+				}
+			}
+		},
+		"GraphFunctionInvoke": {
+			"Type": "AWS::Lambda::Permission",
+			"Properties": {
+				"Action": "lambda:InvokeFunction",
+				"FunctionName": {"Ref": "GraphFunction"},
+				"Principal": "apigateway.amazonaws.com"
+			}
+		},
+		"CellUpdate": {
+			"Type": "AWS::Lambda::Function",
+			"DependsOn": [
+				"ActivityLambdaExecutionRole"
+			],
+			"Properties": {
+				"Code": {
+					"S3Bucket": {"Ref": "S3Bucket"},
+					"S3Key": {"Ref": "LambdaCode"}
+				},
+				"Role": {
+					"Fn::GetAtt": ["ActivityLambdaExecutionRole", "Arn"]
+				},
+				"Timeout": 60,
+				"MemorySize": 1792,
+				"Handler": "io.github.ashleytaylor.graphql.lambda.example.TicketUpdate::handleRequest",
+				"Runtime": "java11",
+				"Environment": {
+					"Variables": {
+						"GRAPH_SUBSCRIPTIONS": { "Ref": "SubscriptionTable"	},
+						"ENTITY_DATABASES" : { "Ref": "EntityTable"},
+						"API": {"Fn::Sub" : "https://${ApiGatewayWebsocket}.execute-api.${AWS::Region}.amazonaws.com/${Stack}"}
+					}
+				}
+			}
+		},
+		"CellUpdateTrigger": {
+			"Type": "AWS::Lambda::EventSourceMapping",
+			"DependsOn": [
+				"CellUpdate"
+			],
+			"Properties": {
+				"EventSourceArn": { "Fn::GetAtt": ["EntityTable", "StreamArn"] },
+				"FunctionName": {
+					"Ref": "CellUpdate"
+				},
+				"StartingPosition": "LATEST"
+			}
+		},
+		"SubscriptionTable": {
+			"Type" : "AWS::DynamoDB::Table",
+			"Properties" : {
+	        	"ProvisionedThroughput": { 
+					"ReadCapacityUnits": 5,
+            		"WriteCapacityUnits": 5
+            	},
+				"AttributeDefinitions" : [
+					{
+						"AttributeName" : "connectionId",
+						"AttributeType" : "S"
+					},
+					{
+						"AttributeName" : "id",
+						"AttributeType" : "S"
+					},
+					{
+						"AttributeName" : "subscription",
+						"AttributeType" : "S"
+					}
+				],
+				"KeySchema" : [
+					{
+						"AttributeName" : "connectionId",
+						"KeyType" : "HASH"
+					},
+					{
+						"AttributeName" : "id",
+						"KeyType" : "RANGE"
+					}
+				],
+				"GlobalSecondaryIndexes" : [
+					{
+						"IndexName" : "subscription",
+						"ProvisionedThroughput": { 
+							"ReadCapacityUnits": 5,
+		            		"WriteCapacityUnits": 5
+		            	},
+						"KeySchema" : [
+							{
+								"AttributeName" : "subscription",
+								"KeyType" : "HASH"
+							}
+						],
+						"Projection" : {
+							"ProjectionType" : "ALL"
+						}
+					}
+				],
+				"TableName" : {"Fn::Sub": "${Stack}-example-graphql-subscriptions" }
+			}
+		},
+		"EntityTable": {
+			"DeletionPolicy" : "Retain",
+			"Type" : "AWS::DynamoDB::Table",
+			"Properties" : {
+				"ProvisionedThroughput": { 
+            		"ReadCapacityUnits": 5,
+            		"WriteCapacityUnits": 5
+            	},
+				"AttributeDefinitions" : [
+					{
+						"AttributeName" : "organisationId",
+						"AttributeType" : "S"
+					},
+					{
+						"AttributeName" : "id",
+						"AttributeType" : "S"
+					},
+					{
+						"AttributeName" : "secondaryGlobal",
+						"AttributeType" : "S"
+					},
+					{
+						"AttributeName" : "secondaryOrganisation",
+						"AttributeType" : "S"
+					}
+				],
+				"KeySchema" : [
+					{
+						"AttributeName" : "organisationId",
+						"KeyType" : "HASH"
+					},
+					{
+						"AttributeName" : "id",
+						"KeyType" : "RANGE"
+					}
+				],
+				"GlobalSecondaryIndexes" : [
+					{
+						"IndexName" : "secondaryGlobal",
+						"ProvisionedThroughput": { 
+							"ReadCapacityUnits": 5,
+		            		"WriteCapacityUnits": 5
+		            	},
+						"KeySchema" : [
+							{
+								"AttributeName" : "secondaryGlobal",
+								"KeyType" : "HASH"
+							}
+						],
+						"Projection" : {
+							"ProjectionType" : "ALL"
+						}
+					}
+				],
+				"LocalSecondaryIndexes": [
+					{
+						"IndexName" : "secondaryOrganisation",
+						"KeySchema" : [
+							{
+								"AttributeName" : "organisationId",
+								"KeyType" : "HASH"
+							},
+							{
+								"AttributeName" : "secondaryOrganisation",
+								"KeyType" : "RANGE"
+							}
+						],
+						"Projection" : {
+							"ProjectionType" : "ALL"
+						}
+					}
+				],
+				"StreamSpecification": {
+					"StreamViewType" : "NEW_IMAGE"
+				},
+				"TableName" : {"Fn::Sub": "${Stack}-example-entity-store" }
+			}
+		}
+		
+	},
+	
+	"Outputs": {
+	
+	}
+
+}
