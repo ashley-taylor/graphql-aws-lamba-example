@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import com.fleetpin.graphql.aws.lambda.GraphQLQuery;
 import com.fleetpin.graphql.aws.lambda.LambdaGraphQL;
 import com.fleetpin.graphql.builder.SchemaBuilder;
-import com.fleetpin.graphql.dynamodb.manager.DynamoDbManager;
+import com.fleetpin.graphql.database.manager.dynamo.DynamoDbManager;
 
 import graphql.GraphQL;
 import io.github.ashleytaylor.graphql.lambda.example.permissions.DatabasePermissions;

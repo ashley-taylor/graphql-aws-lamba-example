@@ -2,8 +2,8 @@ package io.github.ashleytaylor.graphql.lambda.example.permissions;
 
 import java.util.concurrent.CompletableFuture;
 
-import com.fleetpin.graphql.dynamodb.manager.ModificationPermission;
-import com.fleetpin.graphql.dynamodb.manager.Table;
+import com.fleetpin.graphql.database.manager.Table;
+import com.fleetpin.graphql.database.manager.access.ModificationPermission;
 
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
 

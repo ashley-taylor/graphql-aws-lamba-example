@@ -1,10 +1,10 @@
 package io.github.ashleytaylor.graphql.lambda.example;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import com.fleetpin.graphql.aws.lambda.ContextGraphQL;
 import com.fleetpin.graphql.builder.annotations.Context;
-import com.fleetpin.graphql.dynamodb.manager.Database;
+import com.fleetpin.graphql.database.manager.Database;
 
 import io.github.ashleytaylor.graphql.lambda.example.schema.user.User;
 import io.github.ashleytaylor.graphql.lambda.example.schema.user.UserMembership;
@@ -37,8 +37,8 @@ public class ApiContext implements ContextGraphQL {
 	}
 
 	@Override
-	public void start(CompletableFuture<?> complete) {
-		database.start(complete);
+	public void start(CompletionStage<?> complete) {
+		database.start(complete.toCompletableFuture());
 	}
 
 	public void setOrganisationId(String organisationId) {

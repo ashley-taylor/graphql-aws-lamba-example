@@ -3,6 +3,8 @@ package io.github.ashleytaylor.graphql.lambda.example.schema.board;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import org.reactivestreams.Publisher;
+
 import com.fleetpin.graphql.aws.lambda.util.InputMapper;
 import com.fleetpin.graphql.builder.annotations.Entity;
 import com.fleetpin.graphql.builder.annotations.Id;
@@ -10,9 +12,11 @@ import com.fleetpin.graphql.builder.annotations.Mutation;
 import com.fleetpin.graphql.builder.annotations.Query;
 import com.fleetpin.graphql.builder.annotations.Restrict;
 import com.fleetpin.graphql.builder.annotations.SchemaOption;
-import com.fleetpin.graphql.dynamodb.manager.Table;
+import com.fleetpin.graphql.builder.annotations.Subscription;
+import com.fleetpin.graphql.database.manager.Table;
 
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
+import io.github.ashleytaylor.graphql.lambda.example.SubscriptionApiContext;
 import io.github.ashleytaylor.graphql.lambda.example.permissions.TicketRestrict;
 
 @Entity
@@ -75,6 +79,12 @@ public class Ticket extends Table {
 			//not checking exists graph response can't resolve through links as already deleted but is just an example
 			return context.getDatabase().delete(ticket, true);
 		});
+	}
+	
+	
+	@Subscription
+	public static Publisher<Ticket> ticketUpdates(SubscriptionApiContext context, @Id String organisationId) {
+		return context.getPublisher();
 	}
 	
 	@Entity(SchemaOption.INPUT)

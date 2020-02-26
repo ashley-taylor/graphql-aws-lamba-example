@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.fleetpin.graphql.aws.lambda.LambdaSubscriptionControl;
 import com.fleetpin.graphql.builder.SchemaBuilder;
-import com.fleetpin.graphql.dynamodb.manager.DynamoDbManager;
+import com.fleetpin.graphql.database.manager.dynamo.DynamoDbManager;
 
 import graphql.GraphQL.Builder;
 import io.github.ashleytaylor.graphql.lambda.example.schema.user.User;
@@ -57,7 +57,7 @@ public class LambdaSubscriptionEndpoint extends LambdaSubscriptionControl<User>{
 
 	@Override
 	public String buildSubscriptionId(String subscription, Map<String, Object> variables) {
-		return subscription + ":" + variables.get("organisationId");
+		return variables.get("organisationId").toString();
 	}
 
 }

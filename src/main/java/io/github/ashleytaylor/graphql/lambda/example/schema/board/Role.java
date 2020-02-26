@@ -10,8 +10,8 @@ import com.fleetpin.graphql.builder.RestrictType;
 import com.fleetpin.graphql.builder.annotations.Entity;
 import com.fleetpin.graphql.builder.annotations.Id;
 import com.fleetpin.graphql.builder.annotations.Query;
-import com.fleetpin.graphql.dynamodb.manager.Table;
-import com.fleetpin.graphql.dynamodb.manager.TableName;
+import com.fleetpin.graphql.database.manager.Table;
+import com.fleetpin.graphql.database.manager.annotations.TableName;
 
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
 import io.github.ashleytaylor.graphql.lambda.example.directives.AdminOnly;

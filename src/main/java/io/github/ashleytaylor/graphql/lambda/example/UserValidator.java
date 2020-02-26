@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import com.fleetpin.graphql.aws.lambda.CognitoValidator;
-import com.fleetpin.graphql.dynamodb.manager.DynamoDbManager;
+import com.fleetpin.graphql.database.manager.dynamo.DynamoDbManager;
 
 import io.github.ashleytaylor.graphql.lambda.example.schema.user.User;
 import io.github.ashleytaylor.graphql.lambda.example.schema.user.UserGroup;

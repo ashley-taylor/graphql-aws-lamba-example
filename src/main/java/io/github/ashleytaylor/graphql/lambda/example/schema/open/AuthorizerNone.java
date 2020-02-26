@@ -4,7 +4,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.fleetpin.graphql.builder.Authorizer;
 import com.fleetpin.graphql.builder.RestrictType;
-import com.fleetpin.graphql.dynamodb.manager.Table;
+import com.fleetpin.graphql.database.manager.Table;
 
 import graphql.schema.DataFetchingEnvironment;
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
