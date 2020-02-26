@@ -49,8 +49,8 @@ public class Ticket extends Table {
 	}
 
 	@Query
-	public static CompletableFuture<Ticket> ticket(ApiContext context, @Id String organisationId, @Id String ticketId) {
-		return context.getDatabase().get(Ticket.class, ticketId);
+	public static CompletableFuture<Optional<Ticket>> ticket(ApiContext context, @Id String organisationId, @Id String ticketId) {
+		return context.getDatabase().getOptional(Ticket.class, ticketId);
 	}
 
 	@Mutation
