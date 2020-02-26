@@ -1,5 +1,5 @@
 # graphql-aws-lamba-example
-An example Task board API deminstrating how to use the graphql-aws-lambda library
+An example Task board API deminstrating how to use the [graphql-aws-lambda](https://github.com/fleetpin/graphql-aws-lambda) library
 
 It currently does not include any user validation with something like cognito.
 Authorization header just accepts the value as the user id.
