@@ -71,3 +71,6 @@ const gqlClient = new ApolloClient(
 )
 
 ```
+
+##Insomnia example workspace
+Insomnia_workspace.json has examples of the graphql endpoints being called.
