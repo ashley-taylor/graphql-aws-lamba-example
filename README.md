@@ -1,24 +1,24 @@
 # graphql-aws-lamba-example
-An example Task board API deminstrating how to use the [graphql-aws-lambda](https://github.com/fleetpin/graphql-aws-lambda) library
+An example Task board API demonstrating how to use the [graphql-aws-lambda](https://github.com/fleetpin/graphql-aws-lambda) library
 
-It currently does not include any user validation with something like cognito.
-Authorization header just accepts the value as the user id.
+It does not include any user validation with something like cognito.
+The authorization header just accepts the value as the user id.
 
 
 
-##Deploying
+## Deploying
 * Run `mvn package` to create fat jar.
 * Upload to an s3 bucket
 * cf.json is a cloud formation script that can then be used to setup the environement
 * can then look at the aws api gateway to find the urls to connect to
  
 
-##Running locally
+## Running locally
 Can be run locally by starting the VertxRunner main method. Will need to have setup a compatible dynamo table would suggest starting with AWS deployment as will create dynamo tables
 
 
 
-##Connecting the apollo client
+## Connecting the apollo client
 Example connection inforamtion for apollo client, 
 Chrome does sometimes have some header issues with the AWS websocket but below code works with chrome
 
