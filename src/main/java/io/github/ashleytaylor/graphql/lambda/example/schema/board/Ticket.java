@@ -24,7 +24,7 @@ import io.github.ashleytaylor.graphql.lambda.example.permissions.TicketRestrict;
 public class Ticket extends Table {
 
 	private String name;
-	private boolean visible;
+	private Boolean visible;
 	private String description;
 	private TicketStatus status;
 
@@ -32,7 +32,7 @@ public class Ticket extends Table {
 		return name;
 	}
 
-	public boolean isVisible() {
+	public Boolean isVisible() {
 		return visible;
 	}
 

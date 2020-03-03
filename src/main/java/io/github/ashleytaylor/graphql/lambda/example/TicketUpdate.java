@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.fleetpin.graphql.aws.lambda.ContextGraphQL;
+import com.fleetpin.graphql.aws.lambda.LambdaCache;
 import com.fleetpin.graphql.aws.lambda.LambdaSubscriptionSource;
 import com.fleetpin.graphql.builder.SchemaBuilder;
 import com.fleetpin.graphql.database.manager.dynamo.DynamoDbManager;
@@ -39,21 +40,25 @@ public class TicketUpdate extends LambdaSubscriptionSource<DynamodbEvent, Ticket
 
 	@Override
 	public Void handleRequest(DynamodbEvent input, Context context) {
-		for(var record: input.getRecords()) {
-			if(!record.getDynamodb().getNewImage().get("id").getS().startsWith("tickets")) {
-				continue;
+		try {
+			for(var record: input.getRecords()) {
+				if(!record.getDynamodb().getNewImage().get("id").getS().startsWith("tickets")) {
+					continue;
+				}
+				var image = record.getDynamodb().getNewImage();
+				var node = toJsonNode(image);
+				try {
+					var ticket = SchemaBuilder.MAPPER.treeToValue(node.get("item"), Ticket.class);
+					String organisationId = record.getDynamodb().getNewImage().get("organisationId").getS();
+					process(new WrapperTicket(organisationId, ticket)).get();
+				} catch (InterruptedException | ExecutionException | IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
-			var image = record.getDynamodb().getNewImage();
-			var node = toJsonNode(image);
-			try {
-				var ticket = SchemaBuilder.MAPPER.treeToValue(node.get("item"), Ticket.class);
-				String organisationId = record.getDynamodb().getNewImage().get("organisationId").getS();
-				process(new WrapperTicket(organisationId, ticket)).get();
-			} catch (InterruptedException | ExecutionException | IOException e) {
-				throw new RuntimeException(e);
-			}
+			return null;
+		}finally {
+			LambdaCache.evict();
 		}
-		return null;
 	}
 
 	private ObjectNode toJsonNode(Map<String, com.amazonaws.services.dynamodbv2.model.AttributeValue> image) {

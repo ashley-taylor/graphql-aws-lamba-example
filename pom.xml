@@ -11,6 +11,13 @@
 		<junit.jupiter.version>5.4.2</junit.jupiter.version>
 	</properties>
 
+
+	<scm>
+		<url>https://github.com/fleetpin/graphql-builder</url>
+		<connection>scm:git:https://github.com/fleetpin/graphql-builder.git</connection>
+		<developerConnection>scm:git:https://github.com/fleetpin/graphql-builder.git</developerConnection>
+	</scm>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -67,7 +74,8 @@
 			<!-- <scope>test</scope> -->
 		</dependency>
 
-		<!--  needed as lambda dynamo stream does not use new dynamo library yet it seems  -->
+		<!-- needed as lambda dynamo stream does not use new dynamo library yet 
+			it seems -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-dynamodb</artifactId>
