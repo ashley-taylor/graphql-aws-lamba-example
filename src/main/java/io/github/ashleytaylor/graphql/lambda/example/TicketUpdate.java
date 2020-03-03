@@ -46,6 +46,9 @@ public class TicketUpdate extends LambdaSubscriptionSource<DynamodbEvent, Ticket
 					continue;
 				}
 				var image = record.getDynamodb().getNewImage();
+				if(image == null) {
+					continue; //TODO handle delete?
+				}
 				var node = toJsonNode(image);
 				try {
 					var ticket = SchemaBuilder.MAPPER.treeToValue(node.get("item"), Ticket.class);
