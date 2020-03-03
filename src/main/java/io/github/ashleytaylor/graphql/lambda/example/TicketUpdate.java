@@ -41,6 +41,9 @@ public class TicketUpdate extends LambdaSubscriptionSource<DynamodbEvent, Ticket
 	@Override
 	public Void handleRequest(DynamodbEvent input, Context context) {
 		try {
+			if(input == null || input.getRecords() == null) {
+				return null;
+			}
 			for(var record: input.getRecords()) {
 				if(!record.getDynamodb().getNewImage().get("id").getS().startsWith("tickets")) {
 					continue;
