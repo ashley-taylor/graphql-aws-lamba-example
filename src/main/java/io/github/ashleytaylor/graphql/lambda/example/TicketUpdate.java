@@ -45,6 +45,9 @@ public class TicketUpdate extends LambdaSubscriptionSource<DynamodbEvent, Ticket
 				return null;
 			}
 			for(var record: input.getRecords()) {
+				if(record == null || record.getDynamodb() == null || record.getDynamodb().getNewImage() == null) {
+					continue;
+				}
 				if(!record.getDynamodb().getNewImage().get("id").getS().startsWith("tickets")) {
 					continue;
 				}
