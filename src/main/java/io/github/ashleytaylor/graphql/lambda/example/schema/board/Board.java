@@ -12,6 +12,7 @@ import com.fleetpin.graphql.builder.annotations.Query;
 import com.fleetpin.graphql.builder.annotations.Restrict;
 import com.fleetpin.graphql.builder.annotations.SchemaOption;
 import com.fleetpin.graphql.database.manager.Table;
+import com.google.common.base.Strings;
 
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
 import io.github.ashleytaylor.graphql.lambda.example.directives.AdminOnly;
@@ -25,7 +26,8 @@ public class Board extends Table {
 	
 	
 	public String getName() {
-		return name;
+		//dynamo turns empty strings to null
+		return Strings.nullToEmpty(name);
 	}
 	
 	public CompletableFuture<List<Ticket>> getTickets(ApiContext context) {
@@ -43,7 +45,6 @@ public class Board extends Table {
 	@Mutation
 	@AdminOnly
 	public static CompletableFuture<Board> putBoard(ApiContext context, @Id String organisationId, @Id Optional<String> boardId, BoardInput input) {
-
 		CompletableFuture<Board> future;
 		if(boardId.isEmpty()) {
 			var board = new Board();
@@ -57,6 +58,19 @@ public class Board extends Table {
 			InputMapper.assign(board, input);
 			return context.getDatabase().put(board);
 		});
+	}
+	
+	@Mutation
+	@AdminOnly
+	public static CompletableFuture<Boolean> deleteBoard(ApiContext context, @Id String organisationId, @Id String boardId) {
+		return context.getDatabase().get(Board.class, boardId).thenCompose(board -> {
+			if(board == null) {
+				return CompletableFuture.completedFuture(false);
+			}else {
+				return context.getDatabase().delete(board, true).thenApply(__ -> true);
+			}
+		});
+		
 	}
 	
 	@Entity(SchemaOption.INPUT)

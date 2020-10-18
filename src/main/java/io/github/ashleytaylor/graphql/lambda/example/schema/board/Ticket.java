@@ -14,6 +14,7 @@ import com.fleetpin.graphql.builder.annotations.Restrict;
 import com.fleetpin.graphql.builder.annotations.SchemaOption;
 import com.fleetpin.graphql.builder.annotations.Subscription;
 import com.fleetpin.graphql.database.manager.Table;
+import com.google.common.base.Strings;
 
 import io.github.ashleytaylor.graphql.lambda.example.ApiContext;
 import io.github.ashleytaylor.graphql.lambda.example.SubscriptionApiContext;
@@ -29,7 +30,8 @@ public class Ticket extends Table {
 	private TicketStatus status;
 
 	public String getName() {
-		return name;
+		//dynamo turns empty strings to null
+		return Strings.nullToEmpty(name);
 	}
 
 	public Boolean isVisible() {
@@ -37,7 +39,8 @@ public class Ticket extends Table {
 	}
 
 	public String getDescription() {
-		return description;
+		//dynamo turns empty strings to null
+		return Strings.nullToEmpty(description);
 	}
 
 	public TicketStatus getStatus() {
