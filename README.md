@@ -9,7 +9,7 @@ The authorization header just accepts the value as the user id.
 ## Deploying
 * Run `mvn package` to create fat jar.
 * Upload to an s3 bucket
-* cf.json is a cloud formation script that can then be used to setup the environement
+* cf.json is a cloud formation script that can then be used to setup the environment
 * can then look at the aws api gateway to find the urls to connect to
  
 
@@ -19,7 +19,7 @@ Can be run locally by starting the VertxRunner main method. Will need to have se
 
 
 ## Connecting the apollo client
-Example connection inforamtion for apollo client, 
+Example connection information for apollo client, 
 Chrome does sometimes have some header issues with the AWS websocket but below code works with chrome
 
 
@@ -72,5 +72,5 @@ const gqlClient = new ApolloClient(
 
 ```
 
-##Insomnia example workspace
+## Insomnia example workspace
 Insomnia_workspace.json has examples of the graphql endpoints being called.
