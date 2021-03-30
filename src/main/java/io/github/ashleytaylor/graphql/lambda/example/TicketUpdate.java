@@ -51,6 +51,10 @@ public class TicketUpdate extends LambdaSubscriptionSource<DynamodbEvent, Ticket
 				}
 				var node = toJsonNode(image);
 				try {
+					// Does not exist when a new ticket is created
+					if (node.get("item") == null) {
+						continue;
+					}
 					var ticket = SchemaBuilder.MAPPER.treeToValue(node.get("item"), Ticket.class);
 					String organisationId = record.getDynamodb().getNewImage().get("organisationId").getS();
 					process(new WrapperTicket(organisationId, ticket)).get();
